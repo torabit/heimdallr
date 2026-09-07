@@ -1,0 +1,15 @@
+# release-plz decides the next version from the Conventional Commits since the last tag, writes
+# CHANGELOG.md, and opens the release pull request. Merging it publishes to crates.io and pushes
+# the tag; dist takes over from the tag.
+
+[workspace]
+# dist creates the GitHub Release, from the tag release-plz pushes, with a body taken from
+# CHANGELOG.md. Two tools creating one release would race, and the one that builds the binaries
+# is the one that has to own the release they are attached to.
+git_release_enable = false
+
+# `release-plz release` publishes every package the registry does not have yet, and by default it
+# runs on every push to main. That would put the first version on crates.io the moment this
+# pipeline lands, before the binary does anything. false narrows it to the one event that means
+# "release this": the release pull request being merged.
+release_always = false
