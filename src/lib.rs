@@ -1,14 +1,16 @@
 //! Reads the system light/dark mode, and refuses to guess when it cannot.
 //!
 //! The macOS, Windows and Linux backends are
-//! [`dark_light`]'s. What this module adds is the third outcome: a mode that could not be
-//! determined is an error carrying why, never a default.
+//! [`dark_light`]'s. What this crate adds is WSL, where none of them applies, and the third
+//! outcome: a mode that could not be determined is an error carrying why, never a default.
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
 use std::fmt;
 
 use thiserror::Error;
+
+pub mod wsl;
 
 /// The system theme, once it is known.
 ///
@@ -41,6 +43,9 @@ pub enum Undetectable {
     /// Detection ran and failed. The backend says what it was doing when it did.
     #[error("could not read the system theme: {0}")]
     Backend(#[from] dark_light::Error),
+    /// Interop with Windows failed, on a host where that is the only way to ask.
+    #[error("could not read the Windows theme from WSL: {0}")]
+    Wsl(#[from] wsl::Error),
 }
 
 /// Reads the system theme.
@@ -49,6 +54,9 @@ pub enum Undetectable {
 ///
 /// Returns [`Undetectable`] when the platform has no theme to report, or when reading it failed.
 pub fn detect() -> Result<Mode, Undetectable> {
+    if wsl::active() {
+        return Ok(wsl::detect()?);
+    }
     Mode::try_from(dark_light::detect()?)
 }
 
