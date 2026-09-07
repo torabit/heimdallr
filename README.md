@@ -38,9 +38,9 @@ $ heimdallr watch --on-change 'vanadis apply --variant "$1"'
 
 ## Status
 
-Early. The command line is not implemented yet — see the
-[issues](https://github.com/torabit/heimdallr/issues) for what is being built and in what
-order. Nothing is published to crates.io.
+`heimdallr` prints the mode. `heimdallr watch` does not exist yet; see the
+[issues](https://github.com/torabit/heimdallr/issues) for what is being built and in what order.
+Nothing is published to crates.io.
 
 Build from a clone:
 
