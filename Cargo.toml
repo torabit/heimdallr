@@ -2,7 +2,7 @@
 name = "heimdallr"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 description = "Watch the system light/dark theme and run a command when it changes. macOS, Windows, Linux, WSL."
 repository = "https://github.com/torabit/heimdallr"
 license = "MIT OR Apache-2.0"
@@ -10,14 +10,16 @@ readme = "README.md"
 keywords = ["dark-mode", "theme", "system-theme", "watcher", "wsl"]
 categories = ["command-line-utilities"]
 
-# The crate is the binary and the documents that decide how it behaves. What is left out is how
-# heimdallr itself is built: the agent instructions and the CI workflow are of no use to anyone
-# installing it.
+# The crate is the binary, the library it is built from, and the documents that decide how both
+# behave. What is left out is how heimdallr itself is built: the agent instructions and the CI
+# workflow are of no use to anyone installing it.
 exclude = [".claude/", ".github/", "CLAUDE.md"]
 
 [dependencies]
 anyhow = "1.0.104"
 clap = { version = "4.6.6", features = ["derive"] }
+dark-light = { version = "3.0.0", default-features = false }
+thiserror = "2.0.20"
 
 [lints.rust]
 unsafe_code = "forbid"
