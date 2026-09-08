@@ -1,0 +1,8 @@
+# Rendered by `vanadis apply`. Tracked nowhere: the template and themes beside it are the
+# source, and a committed output would drift the moment either changes.
+home/starship.toml
+
+# XDG_DATA_HOME and XDG_STATE_HOME for the recording. What is actually kept under them is
+# the theme vanadis applied last, which demo/bin/follow-terminal-bg reads back.
+home/share/
+home/state/

@@ -1,0 +1,75 @@
+# imported by vanadis from base24/papercolor-dark
+#
+# Trimmed from the copy in vanadis's demo/, which themes four tools where this one themes a
+# prompt. What went is what nothing here reads and `vanadis check` does not ask for: the
+# `[diff]` table, which existed for a diff pager; the `[text]` table, whose values are other
+# tools' own theme names; and seven primitives, of which `purple`, `brown` and `slate` were
+# aliases that only the nvim and herdr templates read by appearance.
+#
+# `[ansi]` and `[role]` stay whole. Those 33 tokens are what `vanadis check` calls core, and
+# a theme that leaves any of them out is reported against every target it renders.
+
+[meta]
+format = 1
+name = "PaperColor Dark"
+variant = "dark"
+author = "Nguyen Nguyen (https://github.com/NLKNguyen/papercolor-theme)"
+
+[ansi]
+0 = "{{colors.base00}}"
+1 = "{{colors.base08}}"
+2 = "{{colors.base0b}}"
+3 = "{{colors.base0a}}"
+4 = "{{colors.base0d}}"
+5 = "{{colors.base0e}}"
+6 = "{{colors.base0c}}"
+7 = "{{colors.base05}}"
+8 = "{{colors.base03}}"
+9 = "{{colors.base12}}"
+10 = "{{colors.base14}}"
+11 = "{{colors.base13}}"
+12 = "{{colors.base16}}"
+13 = "{{colors.base17}}"
+14 = "{{colors.base15}}"
+15 = "{{colors.base07}}"
+
+[colors]
+base00 = "#1c1c1c"
+base01 = "#303030"
+base02 = "#3a3a3a"
+base03 = "#808080"
+base04 = "#585858"
+base05 = "#d0d0d0"
+base07 = "#c6c6c6"
+base08 = "#af005f"
+base09 = "#5faf5f"
+base0a = "#d7af5f"
+base0b = "#5faf00"
+base0c = "#ffaf00"
+base0d = "#5fafd7"
+base0e = "#af87d7"
+base12 = "#d7005f"
+base13 = "#87d75f"
+base14 = "#ffd75f"
+base15 = "#87d700"
+base16 = "#ffd700"
+base17 = "#87d7ff"
+
+[role]
+accent = "{{colors.base0d}}"
+accent-alt = "{{colors.base0c}}"
+accent-warm = "{{colors.base09}}"
+bg = "{{colors.base00}}"
+border = "{{colors.base02}}"
+comment = "{{colors.base03}}"
+error = "{{colors.base08}}"
+fg = "{{colors.base05}}"
+hover-bg = "{{colors.base01}}"
+inactive = "{{colors.base03}}"
+keyword = "{{colors.base0e}}"
+linenr = "{{colors.base04}}"
+ok = "{{colors.base0b}}"
+selection-bg = "{{colors.base02}}"
+string = "{{colors.base0b}}"
+visual = "{{colors.base0d}}"
+warn = "{{colors.base0a}}"

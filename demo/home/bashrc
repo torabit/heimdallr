@@ -1,0 +1,9 @@
+# The prompt the recording shows, sourced by demo.tape rather than started as a new shell:
+# the tape's own `$KEY` and `$ORIG` have to survive it, and the restore in the teardown reads
+# them.
+#
+# starship re-reads its config on every prompt, which is why the prompt follows a theme with
+# no reload command anywhere.
+
+export PS1='$ '
+eval "$(starship init bash)"

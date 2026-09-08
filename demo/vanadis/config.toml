@@ -1,0 +1,24 @@
+# The vanadis config the README's GIF is recorded against. Copied from vanadis's own demo/
+# and cut down to the one target that fits in a terminal you can read. Self-contained:
+# `VANADIS_CONFIG` points here and `XDG_CONFIG_HOME` points at ../home, so nothing outside
+# demo/ is read or written. See demo/README.md.
+
+# The load-bearing table. `vanadis apply --variant dark|light` reads it, and `dark` and
+# `light` are exactly the two words heimdallr puts in `$1`, so the README's headline
+# command needs nothing between the two tools.
+[auto]
+light = "papercolor-light"
+dark = "papercolor-dark"
+
+# starship re-reads its config on every prompt, so the prompt is themed the moment the file
+# is written and there is no reload command to run. That is also what makes it the whole
+# target list here: every other tool vanadis's demo themes needs its own pane, and the
+# recording is one terminal.
+#
+# It is not the only thing on screen that follows. Every cell no program has painted is
+# drawn in the terminal's own default colours, and demo/bin/follow-terminal-bg is what
+# moves those. See the script.
+[[targets]]
+name = "starship"
+template = "templates/starship/starship.toml.in"
+output = "../home/starship.toml"

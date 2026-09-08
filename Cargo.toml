@@ -12,8 +12,9 @@ categories = ["command-line-utilities"]
 
 # The crate is the binary, the library it is built from, and the documents that decide how both
 # behave. What is left out is how heimdallr itself is built: the agent instructions and the CI
-# workflow are of no use to anyone installing it.
-exclude = [".claude/", ".github/", "CLAUDE.md"]
+# workflow are of no use to anyone installing it, and neither is a megabyte of GIF that every
+# `cargo install heimdallr` would otherwise download.
+exclude = [".claude/", ".github/", "CLAUDE.md", "demo/", "media/"]
 
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }

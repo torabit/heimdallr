@@ -28,6 +28,10 @@ command does is up to you.
 heimdallr watch --on-change 'vanadis apply --variant "$1"'
 ```
 
+<p align="center">
+  <img src="media/demo.gif" alt="The Windows theme set from the command line under WSL, and the prompt and the terminal following within a second" width="900" />
+</p>
+
 That runs once now with the current mode, and again every time the OS flips. Ask it the mode
 instead, and it answers in one word:
 
