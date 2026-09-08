@@ -42,11 +42,21 @@ $ heimdallr watch --on-change 'vanadis apply --variant "$1"'
 adjusting either. A systemd unit does not inherit the Windows directories WSL appends to a login
 shell's `PATH`, so heimdallr finds `reg.exe` through `/proc/mounts` when it is not there.
 
+WSL is the one platform that polls, because `reg.exe` has no notification to block on.
+`--interval` sets how often, and defaults to 30 seconds:
+
+```console
+$ heimdallr watch --interval 60 --on-change 'vanadis apply --variant "$1"'
+```
+
+One read costs about 29 ms, so the default is around 0.1% of one core. The price is latency: a
+switch lands up to one interval late. `--interval` is ignored everywhere else, where the system
+says when the theme changed.
+
 ## Status
 
-`heimdallr` prints the mode and `heimdallr watch` runs a command on every change. Under WSL the
-change is not noticed yet — polling is still to come; see the
-[issues](https://github.com/torabit/heimdallr/issues) for what is being built and in what order.
+`heimdallr` prints the mode and `heimdallr watch` runs a command on every change, on all four
+platforms. See the [issues](https://github.com/torabit/heimdallr/issues) for what is left.
 Nothing is published to crates.io.
 
 Build from a clone:

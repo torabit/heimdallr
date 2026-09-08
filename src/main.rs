@@ -3,6 +3,7 @@
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
 use std::process::ExitCode;
+use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 
@@ -20,6 +21,10 @@ enum Command {
         /// The command, handed to `sh -c` with the mode as `$1`.
         #[arg(long, value_name = "COMMAND")]
         on_change: String,
+        /// Seconds between reads of the Windows registry under WSL. Not consulted elsewhere:
+        /// every other platform is told when the theme changes.
+        #[arg(long, value_name = "SECONDS", default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..))]
+        interval: u64,
     },
 }
 
@@ -28,7 +33,10 @@ fn main() -> ExitCode {
 
     match cli.command {
         None => print_mode(),
-        Some(Command::Watch { on_change }) => watch(&on_change),
+        Some(Command::Watch {
+            on_change,
+            interval,
+        }) => watch(&on_change, Duration::from_secs(interval)),
     }
 }
 
@@ -43,10 +51,10 @@ fn print_mode() -> ExitCode {
     }
 }
 
-fn watch(on_change: &str) -> ExitCode {
+fn watch(on_change: &str, interval: Duration) -> ExitCode {
     // Only returns when there is nothing left to watch; a failing command is reported here and
     // stepped over.
-    match heimdallr::watch::run(on_change, |failure| eprintln!("error: {failure}")) {
+    match heimdallr::watch::run(on_change, interval, |failure| eprintln!("error: {failure}")) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => fail(&error),
     }
