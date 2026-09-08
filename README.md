@@ -6,6 +6,11 @@
       src="https://img.shields.io/github/actions/workflow/status/torabit/heimdallr/ci.yml?branch=main&label=ci&style=flat-square"
       alt="CI status"
   /></a>
+  <a href="https://crates.io/crates/heimdallr"
+    ><img
+      src="https://img.shields.io/crates/v/heimdallr?style=flat-square"
+      alt="crates.io version"
+  /></a>
   <a href="https://github.com/torabit/heimdallr/blob/main/LICENSE-MIT"
     ><img
       src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue?style=flat-square"
@@ -53,17 +58,25 @@ One read costs about 29 ms, so the default is around 0.1% of one core. The price
 switch lands up to one interval late. `--interval` is ignored everywhere else, where the system
 says when the theme changed.
 
-## Status
+## Installation
 
-`heimdallr` prints the mode and `heimdallr watch` runs a command on every change, on all four
-platforms. See the [issues](https://github.com/torabit/heimdallr/issues) for what is left.
-Nothing is published to crates.io.
+```console
+$ cargo install heimdallr
+```
 
-Build from a clone:
+Or take a prebuilt binary from the [latest
+release](https://github.com/torabit/heimdallr/releases/latest), which carries macOS, Linux and
+Windows archives and an installer script for each.
+
+From a clone:
 
 ```console
 $ cargo build --release
 ```
+
+`heimdallr` prints the mode and `heimdallr watch` runs a command on every change, on all four
+platforms. The systemd and launchd unit files are still to be written; see the
+[issues](https://github.com/torabit/heimdallr/issues).
 
 ## License
 
