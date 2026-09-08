@@ -1,0 +1,17 @@
+# Rendered by `vanadis apply`. Tracked nowhere: the templates and themes beside them are
+# the source, and a committed output would drift the moment either changes.
+home/nvim/colors/
+home/btop/themes/
+home/starship.toml
+home/nvim.sock
+
+# XDG_DATA_HOME and XDG_STATE_HOME for the recording: nvim's plugin tree and shada, and
+# the theme vanadis applied last.
+home/share/
+home/state/
+
+# Everything under here is written by the demo server or rendered into it: the config
+# vanadis writes, the socket, the log, the session state, and whatever release-notes or
+# lock file the herdr of the day decides to leave behind. Nothing in it is source, so the
+# directory goes rather than a list that a herdr upgrade can outgrow.
+home/herdr/

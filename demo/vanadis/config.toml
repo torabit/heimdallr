@@ -1,0 +1,63 @@
+# The vanadis config the README's GIF is recorded against. Copied from vanadis's own
+# demo/ and trimmed to what this recording uses. Self-contained: `VANADIS_CONFIG` points
+# here and `XDG_CONFIG_HOME` points at ../home, so nothing outside demo/ is read or
+# written. See demo/README.md.
+#
+# Every herdr call names `--session heimdallr-demo`. It is not decoration. `herdr server`
+# and `herdr status` ignore `XDG_CONFIG_HOME` and resolve to the socket under
+# `~/.config/herdr`, which is whatever herdr the recorder is already running. Naming the
+# session is what keeps an apply here off it.
+#
+# Every template reads core tokens only, so both themes render against all four targets.
+
+# The load-bearing table. `vanadis apply --variant dark|light` reads it, and `dark` and
+# `light` are exactly the two words heimdallr puts in `$1`, so the README's headline
+# command needs nothing between the two tools.
+[auto]
+light = "papercolor-light"
+dark = "papercolor-dark"
+
+# herdr reloads its config in the running server, so the sidebar, the tab bar, the pane
+# borders and the pane backgrounds change with nothing restarting. It is the multiplexer
+# the recording runs inside, and a target rather than a stage: it paints most of the frame,
+# and the cells no program has painted are the terminal's own, which
+# demo/bin/follow-terminal-bg handles because vhs reads no config file.
+[[targets]]
+name = "herdr"
+template = "templates/herdr/config.toml.in"
+output = "../home/herdr/config.toml"
+reload = ["demo/bin/reload-herdr"]
+
+# nvim re-executes the generated file on `:colorscheme vanadis`, and its own RPC socket
+# is how to say so from outside. demo.tape starts it with `--listen`.
+#
+# Typing the command into the pane instead does not work. herdr sends pane text as a
+# bracketed paste, and nvim in normal mode pastes into the buffer rather than running it,
+# so the reload silently edits the file on screen. `--remote-send` has no such ambiguity.
+#
+# It goes through demo/bin/reload-nvim rather than straight into `nvim --server`, which is
+# where vanadis's own demo can call it directly and this one cannot. Every run here is a
+# descendant of `heimdallr watch &`. See the script.
+[[targets]]
+name = "nvim"
+template = "templates/nvim/vanadis.lua.in"
+output = "../home/nvim/colors/vanadis.lua"
+reload = ["demo/bin/reload-nvim"]
+
+# btop reads its theme once, at startup, so quitting it is the reload. demo.tape runs it
+# inside `demo/bin/btop-loop`, which is what makes that one keystroke enough: btop
+# exits, the loop starts it again, and the new process reads the new theme.
+#
+# It is the one target that names a pane, and the id only holds on a session with nothing
+# else in it, which is why demo.tape deletes the session before it starts.
+[[targets]]
+name = "btop"
+template = "templates/btop/vanadis.theme.in"
+output = "../home/btop/themes/vanadis.theme"
+reload = ["herdr", "--session", "heimdallr-demo", "pane", "send-keys", "w1:p2", "q"]
+
+# starship re-reads its config on every prompt. Nothing to run.
+[[targets]]
+name = "starship"
+template = "templates/starship/starship.toml.in"
+output = "../home/starship.toml"
