@@ -10,6 +10,7 @@ use std::fmt;
 
 use thiserror::Error;
 
+pub mod watch;
 pub mod wsl;
 
 /// The system theme, once it is known.

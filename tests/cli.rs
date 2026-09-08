@@ -39,3 +39,28 @@ fn an_undetectable_mode_exits_non_zero_and_says_why() {
     assert!(stderr.starts_with("error: "), "{stderr:?}");
     assert!(stderr.trim().len() > "error: ".len(), "{stderr:?}");
 }
+
+#[test]
+fn watch_refuses_to_start_when_there_is_nothing_to_watch() {
+    // On a host that does have a theme the watcher blocks forever, which is the point of it.
+    if run().status.success() {
+        return;
+    }
+
+    let marker = std::env::temp_dir().join(format!("heimdallr-watch-{}", std::process::id()));
+    let _ = std::fs::remove_file(&marker);
+
+    let output = Command::new(env!("CARGO_BIN_EXE_heimdallr"))
+        .args(["watch", "--on-change"])
+        .arg(format!("touch {}", marker.display()))
+        .output()
+        .expect("the binary under test should be runnable");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        stderr.starts_with("error: nothing to watch: "),
+        "{stderr:?}"
+    );
+    assert!(!marker.exists(), "the command must not have run");
+}

@@ -36,9 +36,16 @@ $ heimdallr watch --on-change 'vanadis apply --variant "$1"'
 - **Nothing to keep in step.** No config file, no daemon, no state of its own. `watch` fires
   once at start, so a machine that was asleep across the transition catches up.
 
+## Running it under WSL
+
+`watch` runs from a `systemd --user` unit; a login shell is not needed. It does not need `PATH`
+adjusting either. A systemd unit does not inherit the Windows directories WSL appends to a login
+shell's `PATH`, so heimdallr finds `reg.exe` through `/proc/mounts` when it is not there.
+
 ## Status
 
-`heimdallr` prints the mode. `heimdallr watch` does not exist yet; see the
+`heimdallr` prints the mode and `heimdallr watch` runs a command on every change. Under WSL the
+change is not noticed yet — polling is still to come; see the
 [issues](https://github.com/torabit/heimdallr/issues) for what is being built and in what order.
 Nothing is published to crates.io.
 
