@@ -1,6 +1,6 @@
 [package]
 name = "heimdallr"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.87"
 description = "Watch the system light/dark theme and run a command when it changes. macOS, Windows, Linux, WSL."
