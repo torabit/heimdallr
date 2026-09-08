@@ -6,10 +6,11 @@
 //! machine was asleep.
 
 use std::process::{Command, ExitStatus};
+use std::time::Duration;
 
 use thiserror::Error;
 
-use crate::{Mode, Undetectable};
+use crate::{Mode, Undetectable, wsl};
 
 /// The shell the command is handed to, so that `&&` and the rest of it work.
 const SHELL: &str = "sh";
@@ -38,9 +39,16 @@ pub enum Failure {
     Unstartable(#[from] std::io::Error),
     #[error("the command exited with {status}")]
     Exited { status: ExitStatus },
+    /// A poll that answered nothing. Transient far more often than not, and dying would leave the
+    /// theme unapplied until something restarts us into the same failure.
+    #[error("could not re-read the Windows theme: {0}")]
+    Unreadable(#[from] wsl::Error),
 }
 
 /// Runs `on_change` with the current mode, then again on every change.
+///
+/// `interval` is how often the Windows registry is re-read under WSL, and is not consulted
+/// anywhere else: every other platform blocks until the system tells it something changed.
 ///
 /// Only returns when the mode cannot be read at all, or when the watcher stops. Every failure of
 /// `on_change` itself goes to `report` and the watcher carries on.
@@ -49,11 +57,19 @@ pub enum Failure {
 ///
 /// Returns [`Error::Undetectable`] before anything is watched when the host has no system theme,
 /// and [`Error::Backend`] when the platform watcher cannot be subscribed to.
-pub fn run(on_change: &str, mut report: impl FnMut(&Failure)) -> Result<(), Error> {
+pub fn run(
+    on_change: &str,
+    interval: Duration,
+    mut report: impl FnMut(&Failure),
+) -> Result<(), Error> {
     let mut current = crate::detect()?;
 
     // Once at start: nothing has applied the theme if the machine was off across the transition.
     fire(on_change, current, &mut report);
+
+    if wsl::active() {
+        poll(on_change, interval, current, &mut report);
+    }
 
     let watcher = dark_light::subscribe()?;
     for change in watcher.iter() {
@@ -69,6 +85,49 @@ pub fn run(on_change: &str, mut report: impl FnMut(&Failure)) -> Result<(), Erro
     }
 
     Err(Error::Stopped)
+}
+
+/// Re-reads the Windows theme every `interval` and runs the command when the answer changes.
+///
+/// `reg.exe` offers no notification, so WSL is the one platform that polls. Every other backend
+/// blocks: Windows on `RegNotifyChangeKeyValue`, Linux on a D-Bus signal, macOS on `dark_light`'s
+/// own loop.
+fn poll(
+    on_change: &str,
+    interval: Duration,
+    mut current: Mode,
+    report: &mut impl FnMut(&Failure),
+) -> ! {
+    loop {
+        std::thread::sleep(interval);
+        match tick(current, wsl::detect()) {
+            Tick::Unchanged => {}
+            Tick::Changed(next) => {
+                current = next;
+                fire(on_change, current, report);
+            }
+            Tick::Unreadable(why) => report(&Failure::from(why)),
+        }
+    }
+}
+
+/// What one poll means.
+///
+/// Split out from [`poll`] so that "a change runs the command once, not on every tick" is
+/// decidable without waiting on a clock.
+#[derive(Debug)]
+enum Tick {
+    Unchanged,
+    Changed(Mode),
+    Unreadable(wsl::Error),
+}
+
+fn tick(current: Mode, reading: Result<Mode, wsl::Error>) -> Tick {
+    match reading {
+        Ok(next) if next == current => Tick::Unchanged,
+        Ok(next) => Tick::Changed(next),
+        Err(why) => Tick::Unreadable(why),
+    }
 }
 
 /// Runs the command once, reporting rather than propagating whatever it does.
@@ -123,6 +182,41 @@ mod tests {
             Some(OsStr::new("a && b")),
             "the command must reach the shell in one piece"
         );
+    }
+
+    #[test]
+    fn a_poll_that_answers_the_same_mode_is_not_a_change() {
+        assert!(matches!(tick(Mode::Dark, Ok(Mode::Dark)), Tick::Unchanged));
+    }
+
+    #[test]
+    fn a_poll_that_answers_the_other_mode_is_one() {
+        assert!(matches!(
+            tick(Mode::Dark, Ok(Mode::Light)),
+            Tick::Changed(Mode::Light)
+        ));
+    }
+
+    #[test]
+    fn one_change_fires_once_however_many_ticks_follow() {
+        let mut current = Mode::Dark;
+        let mut fired = Vec::new();
+
+        // The registry flips once, and every later poll reads the new value back.
+        for reading in [Mode::Dark, Mode::Light, Mode::Light, Mode::Light] {
+            if let Tick::Changed(next) = tick(current, Ok(reading)) {
+                current = next;
+                fired.push(next);
+            }
+        }
+
+        assert_eq!(fired, [Mode::Light]);
+    }
+
+    #[test]
+    fn a_poll_that_cannot_read_is_neither_mode() {
+        let reading = Err(wsl::Error::NoDrive);
+        assert!(matches!(tick(Mode::Dark, reading), Tick::Unreadable(_)));
     }
 
     #[test]
