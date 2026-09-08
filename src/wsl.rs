@@ -106,8 +106,14 @@ pub fn parse(output: &str) -> Result<Mode, Error> {
 mod tests {
     use super::*;
 
-    /// `reg.exe query` output: CRLF, a leading blank line, the key path, the value line indented
-    /// and space-padded, and a trailing blank line.
+    /// `reg.exe query` output, byte for byte as observed on WSL2 through `| cat -A`:
+    ///
+    /// ```text
+    /// ^M$
+    /// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize^M$
+    ///     AppsUseLightTheme    REG_DWORD    0x0^M$
+    /// ^M$
+    /// ```
     fn capture(data: &str) -> String {
         format!(
             "\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\r\n    {VALUE}    REG_DWORD    {data}\r\n\r\n"
