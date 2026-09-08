@@ -9,12 +9,12 @@
 # OSC 10, 11 and 12 (default foreground, background and cursor) from the output stream since
 # v5.0. So this is the terminal's reload command, written the only way this terminal accepts.
 #
-# It has to run in the shell that owns the terminal, before `herdr session attach`, so that
-# its stdout is the terminal itself. Sending the same sequences from inside a pane does
-# nothing: herdr does not forward a pane's OSC to the host terminal.
+# It matters more here than it does in vanadis's demo, where herdr paints most of the frame.
+# There is no multiplexer in this recording, so every cell the prompt has not painted is the
+# terminal's own, and without this the background would sit still while the theme changed.
 #
-# Why a poll and not a target's `reload`: vanadis runs inside a pane and has no handle on the
-# terminal the recording is drawn on.
+# Why a poll and not a target's `reload`: a reload command has no handle on the terminal the
+# recording is drawn on, and this has to be the process whose stdout is that terminal.
 set -eu
 
 last=""

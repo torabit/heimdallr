@@ -1,12 +1,16 @@
 # Recording the README's demo GIF
 
 One recording, driven by [vhs](https://github.com/charmbracelet/vhs). Everything it reads and
-writes lives under `demo/`, so a recording touches nothing in `~/.config` and nothing in the
-herdr you are already running.
+writes lives under `demo/`, so a recording touches nothing in `~/.config`.
 
 | tape | output | what it shows |
 | --- | --- | --- |
-| `demo.tape` | `media/demo.gif` | the Windows theme flipped from the command line, and an editor, a process viewer, a prompt and the terminal all following |
+| `demo.tape` | `media/demo.gif` | the Windows theme set from the command line, and the prompt and the terminal following within a second |
+
+One terminal and no multiplexer, which was the second attempt. The first ran a four-pane herdr
+session with Neovim and btop following the theme as well, and at the width four panes need,
+none of it was legible once the GIF was scaled into a README column. Everything that is on
+screen now can be read.
 
 ## It has to be recorded on WSL
 
@@ -20,28 +24,40 @@ WSL is also the platform worth showing. It is the one nothing else covers.
 
 ## Recording
 
-From the repository root, and only from there. The tape uses relative paths, and so do the
-reload commands in `demo/vanadis/config.toml`.
+From the repository root, and only from there. The tape uses relative paths.
 
 ```sh
 cargo build --release
 PATH="$PWD/target/release:$PATH" vhs demo/demo.tape
 ```
 
-`PATH` is for vhs's own `Require heimdallr`, which looks at the recorder's shell. The panes get
-their copy from `demo/bin/demo-env`, which puts `target/release` ahead of `~/.cargo/bin` so
-that a heimdallr installed on the recording machine is not what ends up in the GIF.
+`PATH` is for vhs's own `Require heimdallr`, which looks at the recorder's shell. The tape
+exports its own copy, with `target/release` ahead of `~/.cargo/bin` so that a heimdallr
+installed on the recording machine is not what ends up in the GIF.
 
-**The recording flips the real Windows theme.** The tape reads `AppsUseLightTheme` before it
-writes anything, restores it in the teardown, and reads it back to check:
+### The recording flips the real Windows theme
+
+The tape reads `AppsUseLightTheme` before it writes anything and restores it in the teardown.
+The read is checked first:
 
 ```
-Wait+Screen@15s /restored=0/
+Wait+Screen@15s /ORIG=0x[01]/
 ```
 
-A restore that did not happen fails the recording rather than being discovered on the desktop
-afterwards. So does a value that could not be read in the first place, and that check comes
-before the first write, when there is still nothing to undo.
+A value that could not be read aborts the tape at the last moment when there is still nothing
+to undo. The restore is checked by its own exit status, `restore=0`.
+
+**It is not read back inside the tape, and that is deliberate.** An earlier version ran a
+second `reg.exe query` to compare, and that query intermittently never returned: `restore=0`
+printed and then nothing, until the `Wait` timed out on a command that had not come back. Two
+recordings out of three, with `grep -q` and with an `awk` that reads its input to the end
+alike, so the first guess — `-q` closing the pipe under a writer — was wrong and the mechanism
+was never established. `reg.exe add` has returned every time. So check it afterwards instead:
+
+```sh
+reg.exe query 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' \
+  /v AppsUseLightTheme
+```
 
 ### `VHS_NO_SANDBOX` is conditional, and this machine does not need it
 
@@ -61,11 +77,10 @@ the worse trade.
 
 ## What has to be installed
 
-`vhs`, and the four programs the GIF puts on screen. All five come from Homebrew.
-
 ```sh
-brew install vhs herdr neovim btop starship
+brew install vhs starship
 cargo install vanadis
+sudo apt install fonts-jetbrains-mono
 ```
 
 vhs's own dependencies (ffmpeg, ttyd) come with it. What does not is the set of shared
@@ -81,56 +96,50 @@ sudo apt install libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbc
 ### The font has to be the one the tape names
 
 The tape names `JetBrains Mono`. Naming a font that is not installed is worth avoiding:
-fontconfig answers with whatever it does have rather than an error, so the wrong name is
-silent.
+fontconfig answers with whatever it does have rather than an error, so a wrong name is silent.
 
 ```sh
-sudo apt install fonts-jetbrains-mono
 fc-match "JetBrains Mono"   # must answer JetBrains Mono, not something else
 ```
 
-On this machine, before that package, `fc-match "JetBrains Mono"` answered `DejaVu Sans Mono`,
-which is at least monospaced. A name that lands on a full-width font is the worse case: it
-doubles every cell, halves the grid, and reports nothing.
+On this machine, before `fonts-jetbrains-mono`, it answered `DejaVu Sans Mono`, which is at
+least monospaced. A name that lands on a full-width font is the worse case: it doubles every
+cell, halves the grid, and reports nothing.
 
 ## How it is wired
 
 ```
 demo/
-  vanadis/          VANADIS_CONFIG. config.toml, four templates, two themes
-  home/             XDG_CONFIG_HOME. herdr, nvim, btop and the shell read from here
-  bin/              demo-env, btop-loop, reload-herdr, reload-nvim, follow-terminal-bg
+  vanadis/          VANADIS_CONFIG. config.toml, one template, two themes
+  home/             XDG_CONFIG_HOME. bashrc, and the starship.toml vanadis renders
+  bin/              follow-terminal-bg
 ```
 
-Copied from [vanadis](https://github.com/torabit/vanadis)'s own `demo/` and changed in four
-places: the session is `heimdallr-demo`, the nvim reload goes through a wrapper, the prompt
-drops its git segments, and `demo-env` extends `PATH`. Each is explained below or in the file
-it changed.
+Copied from [vanadis](https://github.com/torabit/vanadis)'s own `demo/` and cut to what one
+terminal can show.
 
 heimdallr is not what changes the colours. `vanadis apply --variant "$1"` is, and `[auto]` in
-`demo/vanadis/config.toml` is what turns heimdallr's `dark` or `light` into a theme name. The
-four targets follow that theme differently, and that difference is why there are four.
+`demo/vanadis/config.toml` is what turns heimdallr's `dark` or `light` into a theme name, so
+the README's headline command needs nothing between the two tools.
 
-| target | how it follows a theme |
+| what follows the theme | how |
 | --- | --- |
-| starship | re-reads its config on every prompt, so nothing runs at all |
-| herdr | `herdr server reload-config`, and the sidebar, tab bar, borders and pane backgrounds redraw |
-| nvim | `:colorscheme vanadis` over its own RPC socket, which re-executes the generated file |
-| btop | one `q`, because btop reads a theme once and `demo/bin/btop-loop` starts it again |
+| the prompt | starship re-reads its config on every prompt, so nothing runs at all |
+| the terminal's own colours | OSC 10, 11 and 12 from `demo/bin/follow-terminal-bg` |
 
-**The terminal follows too, over OSC.** Every cell no program has painted is drawn in the
-terminal's default colours. In a real setup the terminal emulator is a vanadis target and reads
-a config file like anything else. vhs reads none, and its `Set Theme` is applied once at
-startup and ignored for the rest of the tape. What it does honour is OSC: vhs draws through
-ttyd and xterm.js, which has handled OSC 10, 11 and 12 from the output stream since v5.0.
-`demo/bin/follow-terminal-bg` is that reload command, and it has to run in the shell that owns
-the terminal, started before `herdr session attach`, so that its stdout is the terminal.
+vhs reads no config file and applies `Set Theme` once at startup, so the terminal cannot be a
+vanadis target the way a real emulator is. What it does honour is OSC: it draws through ttyd
+and xterm.js, which has handled OSC 10, 11 and 12 from the output stream since v5.0.
+`demo/bin/follow-terminal-bg` is that reload command, and it has to be the process whose
+stdout is the terminal.
 
-## Four things that will bite
+**heimdallr prints nothing when a run succeeds**, so what shows it fired is the output of the
+command it was given: `applied papercolor-light` and `wrote starship`.
 
-**`heimdallr watch &` is a background process group, and one of the reloads could not take
-that.** `nvim --server … --remote-send` touches the terminal it was handed, which from a
-background process group raises SIGTTOU and stops the whole job:
+## Five things that will bite
+
+**`heimdallr watch &` is a background process group, and that limits what `--on-change` can
+be.** A command whose children touch the terminal gets SIGTTOU and stops the whole job:
 
 ```
 [1]+  Stopped     heimdallr watch --interval 1 --on-change 'vanadis apply --variant "$1"'
@@ -138,32 +147,65 @@ background process group raises SIGTTOU and stops the whole job:
 
 Nothing says why. heimdallr prints nothing on success, so a stopped watcher and a working one
 look the same, and bash reports a stopped job at the next prompt rather than when it happened,
-so the notice lands under a later command. The first recording of this tape had heimdallr
-stopped by its own start-up run and a theme that never followed anything.
+so the notice lands under a later command. The four-pane cut of this tape hit it: `nvim
+--server … --remote-send` was one of the reloads, and the watcher was stopped by its own
+start-up run, with a recording to show for it in which nothing ever changed colour.
 
-`demo/bin/reload-nvim` is the fix and its whole content is the redirection. vanadis's own demo
-calls the same command straight from `config.toml` and is right to: there it is a child of a
-typed `vanadis cycle`, running in the foreground.
-
-Measured, with job control on and a live demo session: the bare command leaves its job in
-state `T` and the wrapped one leaves it `Done`. `set -m` matters when reproducing this. A
+Measured, with job control on: the bare command leaves its job in state `T` and the same
+command with its output redirected leaves it `Done`. `set -m` matters when reproducing this. A
 non-interactive shell has job control off, `&` does not make a new process group, and nothing
 gets SIGTTOU at all.
 
-**`herdr server stop` is not how to end the attach.** Typed into a pane it does stop the
-server, but the client did not exit inside three seconds, and every command after it went into
-a pane of a session that was going away, including the one that restores the registry.
-`prefix+q` — `Ctrl+b` then `q` — is herdr's detach, and it hands the recording shell its own
-keyboard back. vanadis's tape does not notice the difference because it ends without waiting
-for anything afterwards.
+Nothing in the current `--on-change` touches the terminal. This is also the reason the tape
+waits on `applied` rather than sleeping through it:
 
-**`$ORIG` stays in the recording shell and the key goes to the pane.** After `herdr session
-attach` the keystrokes reach the focused pane, so the shell pane needs its own copy of the
-registry key. The original value deliberately does not follow it: the restore runs in the
-recording shell after the detach, which is the only place the value read before any of this
-was written still is.
+```
+Wait+Screen@20s /papercolor-dark/
+```
 
-**The prompt must not depend on the branch.** `demo/vanadis/templates/starship/starship.toml.in`
+A tape that gets no theme change aborts instead of producing a plausible GIF.
+
+**Do not kill the watcher in the teardown.** `kill %1` signals the job's whole process group,
+and that group holds whatever `reg.exe` heimdallr had running at the time. The shell stopped
+answering and `echo watcher=$?` never printed. Nothing has to be killed: both background jobs
+get SIGHUP when vhs takes the shell away. Check with `pgrep -af
+"follow-terminal-bg|heimdallr watch"` after a recording, which is how the version that
+disowned `follow-terminal-bg` was caught leaving it running.
+
+**`Sleep` where a `Wait` would do is how a broken recording gets committed.** Every bare `Wait`
+in the setup is the default `/>$/` against the last line, which is vhs's own `> ` prompt, and
+`source demo/home/bashrc` is the line that ends them: from there the prompt is `heimdallr ❯`
+and that pattern has nothing to match. Matching the new prompt does not work either — it is on
+the line being typed as well as the line after, so the wait is satisfied before the command
+has run. Every step after it waits on output the command itself produces, `echo prompt=$?` and
+`echo restore=$?` and the rest, with `$?` and never the word, because `Wait+Screen` matches
+the whole screen and a command containing the string it waits for is matched by its own typing.
+
+The `Sleep`s that are left are all in the recorded section, where the point is a duration on
+screen, plus one after `clear`, where what has to be true is that the screen is empty and no
+regexp says that.
+
+One transition cannot be waited on: `papercolor-dark` is on screen from the start-up run, so
+the flip back has nothing to match that has not matched already. The teardown checks that one
+through `vanadis current`, which knows which theme was applied last rather than which words
+are on the screen.
+
+**Padding and leftover height do not follow the theme.** vhs paints both from `Set Theme`,
+once, and OSC 11 reaches only the cells inside xterm.js. `Set Padding 20` was 20px of
+papercolor-dark framing a light terminal for a third of the recording, and `Set Height 560`
+left a 12px bar above the grid and a 15px bar below it. `Padding 0`, and a height that a whole
+number of rows fills:
+
+```sh
+ffmpeg -i frame.png -vf "crop=1:534:5:0,format=gray" -f rawvideo col.raw
+```
+
+and then the first and last row in `col.raw` that is not the seed background. That said 533,
+and the tape uses 534, because an odd height fails in ffmpeg rather than in vhs and fails
+after the recording: `Failed to configure input pad`, a zero-byte GIF, and vhs still exiting
+0. Rounding down drops a whole row and puts 29px of bar back.
+
+**The prompt must not carry the branch name.** `demo/vanadis/templates/starship/starship.toml.in`
 drops `$git_branch` and `$git_status`. This gets recorded on `torabit/docs/demo-gif`, which is
 43 columns of prompt and wrapped every recorded command onto a second line. A committed GIF
 whose layout depends on the branch it happened to be recorded from cannot be re-recorded to
@@ -171,18 +213,17 @@ look the same.
 
 ## Size and geometry
 
-`Set Width 1800`, and the reason is the recorded commands rather than the panes. The cell is
-9.2px at font size 14, measured off a recording, and the shell pane comes out 96 columns:
-enough for the 93 of `torabit/heimdallr ❯ ` and the longest recorded command. vanadis's 1700
-gives it about 90 and wraps that line.
+Font size first and width second, which is the opposite of the four-pane cut. The cell is
+0.657px per point of font size, measured off a recording, so 22pt is 14.5px and `Set Width
+1400` leaves 96 columns. The longest line on screen is 85: `heimdallr ❯ ` and the `heimdallr
+watch` command. Scaled to the 900px the README asks for, that is a 14px effective font, which
+is the whole point of this shape.
 
-btop is the other pane in the same column and refuses to draw below 80, printing "Terminal size
-too small" instead. That is the floor. Shrinking the recording without looking at that pane is
-how the TUI ends up blank.
+`truncation_length` is 1 rather than vanadis's 2 for the same arithmetic. Every column the
+prompt does not take is a column that goes into font size instead.
 
-The output is about 1.2MB over 23.6 seconds. Keep it under 2MB; lowering `Set Framerate` or
-trimming a `Sleep` is the first thing to try, and the width and height are the last, for the
-reason above.
+The output is about 280KB over 23.2 seconds. Keep it under 2MB; lowering `Set Framerate` or
+trimming a `Sleep` is the first thing to try.
 
 ## Checking a recording
 
@@ -195,6 +236,6 @@ ffprobe -v error -f lavfi -i "movie=media/demo.gif,signalstats" \
       printf "transition at %.2fs: %.0f -> %.0f\n", (n-1)/24.0, prev, $1; prev=$1}'
 ```
 
-The recording committed here answers two transitions, at 12.75s and 20.83s, which is dark to
+The recording committed here answers two transitions, at 11.54s and 17.83s, which is dark to
 light and back. A recording where the watcher was stopped answers none, and looks fine until
 you ask.

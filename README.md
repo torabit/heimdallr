@@ -29,7 +29,7 @@ heimdallr watch --on-change 'vanadis apply --variant "$1"'
 ```
 
 <p align="center">
-  <img src="media/demo.gif" alt="The Windows theme set from the command line under WSL, and Neovim, btop, the prompt and the terminal all following within a second" width="900" />
+  <img src="media/demo.gif" alt="The Windows theme set from the command line under WSL, and the prompt and the terminal following within a second" width="900" />
 </p>
 
 That runs once now with the current mode, and again every time the OS flips. Ask it the mode

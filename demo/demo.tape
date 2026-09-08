@@ -11,18 +11,15 @@
 # command-line spelling of clicking the Windows appearance setting. heimdallr prints nothing
 # on success, so what shows it fired is the output of the command it was given.
 #
-# Everything before `Show` builds the herdr session and is not recorded. The whole layout is
-# built against a headless server and attached to at the very end. Typing the setup into the
-# attached TUI instead loses it: herdr takes a while to become interactive, and keys sent
-# before then go nowhere.
+# One terminal and no multiplexer. An earlier cut of this ran a four-pane herdr session with
+# nvim and btop following the theme as well, and at the width that took, none of it was
+# legible once the GIF was scaled into a README column. What follows the theme here is the
+# prompt and the terminal's own colours, and both can be read.
 
 Output media/demo.gif
 
 Require heimdallr
 Require vanadis
-Require herdr
-Require nvim
-Require btop
 Require starship
 
 Set Shell "bash"
@@ -32,23 +29,39 @@ Set Shell "bash"
 # machine `fc-match "JetBrains Mono"` answered `DejaVu Sans Mono` until the font was
 # installed, and a name that lands on a full-width font doubles every cell.
 Set FontFamily "JetBrains Mono"
-Set FontSize 14
-Set Width 1800
-Set Height 950
+Set FontSize 22
+Set Width 1400
+Set Height 534
 Set Padding 0
 Set Framerate 24
 Set TypingSpeed 45ms
 
-# 1800 and not vanadis's 1700, for the recorded commands rather than for btop. Measured off
-# a recording: the cell is 9.2px at font size 14 and the shell pane comes out 96 columns
-# wide, which takes the 93 of `torabit/heimdallr ❯ ` and the longest recorded command with
-# three to spare. 1700 gives it about 90 and wraps that line.
+# Font size first and width second, which is the opposite of the earlier four-pane cut. The
+# cell is 0.657px per point of font size, measured off a recording, so 22pt is 14.5px and
+# 1400 leaves 96 columns. The longest line on screen is 85: `heimdallr ❯ ` and the
+# `heimdallr watch` command. Scaled to the 900px the README asks for, that is a 14px
+# effective font, which is the whole reason this shape was chosen.
 #
-# btop is the other pane in the same column and refuses to draw below 80, printing
-# "Terminal size too small" instead, so this is the floor and not the ceiling: shrinking the
-# recording without looking at that pane is how the TUI ends up blank.
+# The prompt is one directory component rather than vanadis's two for the same arithmetic.
+# Every column the prompt does not take is a column that goes into font size instead.
+#
+# `Padding 0` because padding does not follow the theme. vhs paints it from `Set Theme`,
+# once, and OSC 11 reaches only the cells inside xterm.js, so 20px of padding was 20px of
+# papercolor-dark drawn as a frame around a light terminal for a third of the recording.
+#
+# The height is the same problem, and 534 is a measured number rather than a chosen one.
+# Whatever a whole number of rows does not fill gets that same fixed colour, and at 560 that
+# was a 12px bar above the terminal and a 15px bar below it, dark, across the light half of
+# the recording. What the terminal actually occupied there was 533px:
+#
+#   ffmpeg -i frame.png -vf "crop=1:H:5:0,format=gray" -f rawvideo col.raw
+#
+# and then the first and last row in `col.raw` that is not the seed background. 534 and not
+# 533 because an odd height fails in ffmpeg rather than in vhs, and it fails after the
+# recording: `Failed to configure input pad`, a zero-byte GIF, and vhs still exiting 0.
+# Rounding down instead would drop a whole row and put 29px of bar back.
 
-# The seed, so nothing flashes before the attach, and the ANSI palette for the whole
+# The seed, so nothing flashes before the first frame, and the ANSI palette for the whole
 # recording: `Set Theme` is applied once and ignored afterwards, which is why
 # demo/bin/follow-terminal-bg exists. The terminal does follow, over OSC, and not from here.
 # This is papercolor-dark, which is where the recording starts.
@@ -56,17 +69,18 @@ Set Theme { "name": "papercolor-dark", "background": "#1c1c1c", "foreground": "#
 
 Hide
 
-# The demo's environment, for the commands typed here. Every pane goes through
-# demo/bin/demo-env instead, because the pane shells read the recorder's rc files and put
-# their own values back.
+# Nothing outside demo/ is read or written. `target/release` ahead of everything else is what
+# keeps a heimdallr installed on the recording machine out of the GIF, and System32 is what
+# makes the recorded command a bare `reg.exe`, which is what a WSL install with the default
+# `[interop] appendWindowsPath = true` gives you. This machine has it off, and the absolute
+# path is 96 characters that say nothing.
+Type "export PATH=$PWD/target/release:/mnt/c/Windows/System32:$PATH" Enter
 Type "export COLORTERM=truecolor" Enter
 Type "export VANADIS_CONFIG=$PWD/demo/vanadis" Enter
 Type "export XDG_CONFIG_HOME=$PWD/demo/home" Enter
 Type "export XDG_DATA_HOME=$PWD/demo/home/share" Enter
 Type "export XDG_STATE_HOME=$PWD/demo/home/state" Enter
 Type "export STARSHIP_CONFIG=$PWD/demo/home/starship.toml" Enter
-Type "export HERDR_CONFIG_PATH=$PWD/demo/home/herdr/config.toml" Enter
-Type "export PATH=/mnt/c/Windows/System32:$PATH" Enter
 Wait
 
 # The recorder's own theme, read before anything is written, and restored in the teardown.
@@ -76,7 +90,7 @@ Wait
 Type `ORIG=$(reg.exe query "$KEY" /v AppsUseLightTheme | tr -d '\r' | awk '/AppsUseLightTheme/ {print $3}'); echo "ORIG=$ORIG"` Enter
 
 # Not a courtesy. A tape that cannot read the value has nothing to restore, and this is the
-# last moment at which that is still true: nothing has been written yet. `Wait` that times
+# last moment at which that is still true: nothing has been written yet. A `Wait` that times
 # out aborts the tape instead of leaving the desktop wherever the recording put it.
 Wait+Screen@15s /ORIG=0x[01]/
 
@@ -85,127 +99,131 @@ Wait+Screen@15s /ORIG=0x[01]/
 Type `reg.exe add "$KEY" /v AppsUseLightTheme /t REG_DWORD /d 0 /f >/dev/null 2>&1` Enter
 Wait
 
-# The starting state on disk. Nothing is running yet, so every reload fails and apply exits
-# non-zero; the files it would have reloaded are written, which is all this needs.
-Type "vanadis apply --variant dark >/dev/null 2>&1; true" Enter
+# The starting state on disk, so the prompt is themed before the first frame.
+Type "vanadis apply --variant dark >/dev/null" Enter
 Wait
 
-# A session that already exists keeps its panes, and every new run splits three more onto
-# the end. The btop target names a pane by id, so the run has to start from nothing. A
-# socket left behind by a killed recording stops the next nvim from listening on it.
-Type "herdr --session heimdallr-demo server stop >/dev/null 2>&1; herdr session delete heimdallr-demo >/dev/null 2>&1; rm -f $PWD/demo/home/nvim.sock; true" Enter
-Wait
-
-Type "(setsid herdr --session heimdallr-demo server >/dev/null 2>&1 </dev/null &)" Enter
-Wait
-
-# The server takes a moment to open its socket, and `workspace create` is the first command
-# that needs it. Retrying until it answers beats guessing how long that is.
-Type "until herdr --session heimdallr-demo pane list >/dev/null 2>&1; do sleep 0.2; done" Enter
-Wait@30s
-
-# A headless server starts with no workspace at all, so the root pane has to be asked for.
-Type "herdr --session heimdallr-demo workspace create --cwd $PWD --label heimdallr >/dev/null" Enter
-Wait
-
-# Left pane the editor, right column the TUI over the shell.
-Type "herdr --session heimdallr-demo pane split w1:p1 --direction right --ratio 0.42 --cwd $PWD --no-focus >/dev/null" Enter
-Wait
-Type "herdr --session heimdallr-demo pane split w1:p2 --direction down --ratio 0.55 --cwd $PWD --no-focus >/dev/null" Enter
-Wait
-
-# These four stay on Sleep. `Wait` watches the shell this is typed into, and what has to
-# happen is a program drawing inside a pane, which that shell cannot report.
-Type "herdr --session heimdallr-demo pane run w1:p2 demo/bin/demo-env demo/bin/btop-loop" Enter
-Sleep 2s
-Type "herdr --session heimdallr-demo pane run w1:p3 demo/bin/demo-env bash --rcfile demo/home/bashrc" Enter
-Sleep 2s
-Type "herdr --session heimdallr-demo pane run w1:p3 clear" Enter
-Sleep 1s
-
-# src/watch.rs and not a README: it is the poll the tape is about to trigger, and Rust gives
-# the colorscheme keywords, strings and comments to colour.
-Type "herdr --session heimdallr-demo pane run w1:p1 demo/bin/demo-env nvim --listen $PWD/demo/home/nvim.sock src/watch.rs" Enter
-Sleep 3s
-Type "herdr --session heimdallr-demo pane focus --pane w1:p2 --direction down >/dev/null" Enter
-Wait
-
-# The terminal's own default colours, which no pane can reach. This has to start here, in
-# the shell that owns the terminal, so that its stdout is the terminal. See the script.
+# The terminal's own default colours. This has to be the process whose stdout is the
+# terminal, which is why it starts here and not from a reload command.
+#
+# Left in the job table rather than disowned, which is why the recorded `heimdallr watch &`
+# announces itself as `[2]` and not `[1]`. Disowning it to get the nicer number leaves it
+# running after the recording: nothing in the teardown can be trusted to kill it, and
+# nothing has to, because a job of this shell gets SIGHUP when vhs takes the shell away.
 Type "demo/bin/follow-terminal-bg &" Enter
 Wait
 
-# Not a Sleep. herdr is not interactive for several seconds after the attach. `grouped` is a
-# label herdr only draws once its sidebar is up.
-Type "clear; herdr session attach heimdallr-demo" Enter
-Wait+Screen@30s /grouped/
-Sleep 2s
+# Sourced and not exec'd: `$KEY` and `$ORIG` have to survive into the teardown.
+#
+# Every bare `Wait` above is the default `/>$/` against the last line, which is vhs's own
+# `> ` prompt, and this is the line that ends them. From here the prompt is `heimdallr ❯`
+# and there is nothing for that pattern to match. Matching the new prompt instead does not
+# work either: it is on the line being typed as well as the line after, so the wait is
+# satisfied before the command has run. Every step from here waits on output the command
+# itself produces.
+Type "source demo/home/bashrc; echo prompt=$?" Enter
+Wait+Screen@15s /prompt=0/
 
-# From here the keystrokes reach the focused pane and not this shell, so the shell pane needs
-# its own copy of the key. `$ORIG` deliberately stays behind: the restore runs in this shell
-# after the attach exits, where the value read before any of this was written still is.
-Type `KEY='HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'` Enter
-Sleep 1s
+# The one place a `Sleep` is the honest instrument. What has to be true is that the screen
+# is empty, which no regexp says, and `clear` is instant.
 Type "clear" Enter
-Sleep 1s
+Sleep 500ms
 
 Show
 
 # Dark. Let it be read before anything moves.
 Sleep 1500ms
 
-# heimdallr prints nothing when a run succeeds, so the three lines that appear are vanadis's,
+# heimdallr prints nothing when a run succeeds, so the two lines that appear are vanadis's,
 # through heimdallr's stdout. `--interval 1` because the default 30 would be 30 seconds of
 # GIF spent waiting; the flag is real and this is what it is for.
 #
 # It fires once here, with the mode as it already is, which is the "it catches up" the README
 # claims: a machine that was off across the transition is not left behind. Nothing changes
 # colour, because nothing is out of date.
+#
+# Backgrounded, and that is not free. `&` makes a new process group, and an `--on-change`
+# command with a child that touches the terminal gets SIGTTOU and stops the watcher without
+# saying so. Nothing in this one does. See demo/README.md.
 Type `heimdallr watch --interval 1 --on-change 'vanadis apply --variant "$1"' &` Enter
-Sleep 3s
+
+# Waited on and not slept through, because this is the step that failed silently once. A
+# watcher stopped by SIGTTOU prints nothing and looks exactly like a working one, and the
+# recording that came of it had a theme that never followed anything. `applied` is the
+# start-up run's own output, so a tape that gets no theme change aborts here rather than
+# producing a plausible GIF.
+Wait+Screen@20s /papercolor-dark/
+Sleep 2s
+
+# A bare Enter before each command, and it earns its place twice.
+#
+# The watcher's output arrives while bash is already sitting at a prompt, so it lands on the
+# prompt's own line and bash does not draw another one — the next command would be typed at
+# a bare column zero, which reads like output rather than like something typed. Enter asks
+# for the prompt back.
+#
+# It is also the only way the prompt is seen to follow the theme at all. starship re-reads
+# its config on every prompt, so a prompt already on screen keeps the colours it was drawn
+# with; the one after the flip is the one that shows the new palette.
+Enter
+Sleep 500ms
 
 # Light. This is the Windows appearance setting, typed rather than clicked, and it changes
 # the real desktop.
 Type `reg.exe add "$KEY" /v AppsUseLightTheme /t REG_DWORD /d 1 /f >/dev/null` Enter
-Sleep 4s
+
+# The poll seeing the flip, waited on for the same reason as above. `papercolor-light` is on
+# nothing that has been typed, so this matches the output or times out.
+Wait+Screen@20s /papercolor-light/
+Sleep 2s
+
+Enter
+Sleep 500ms
 
 # And back, so the loop has no seam.
+#
+# This one is a `Sleep`. `papercolor-dark` has been on screen since the start-up run, so
+# there is nothing here for `Wait+Screen` to match that has not matched already. The
+# teardown checks this transition instead, through `vanadis current`, which knows which
+# theme was applied last and not which words are on the screen.
 Type `reg.exe add "$KEY" /v AppsUseLightTheme /t REG_DWORD /d 0 /f >/dev/null` Enter
 Sleep 4s
 
+# The last frame is a prompt in the palette it started in.
+Enter
+Sleep 1500ms
+
 Hide
 
-# Typed into the pane while the attach is still in the foreground.
-Type "kill %1" Enter
-Sleep 1s
-
-# `prefix+q`, which is herdr's detach, and the only thing here that reliably hands this
-# shell its own keyboard back. Typing `herdr server stop` into the pane instead does stop
-# the server, but the client did not exit inside three seconds and every command after it
-# went into a pane of a session that was going away; the `Wait` that follows is what caught
-# it, and vanadis's tape does not notice only because it ends without waiting.
-Ctrl+b
-Sleep 500ms
-Type "q"
-Sleep 2s
-Wait
-
-Type "herdr --session heimdallr-demo server stop" Enter
-Wait
-Type "herdr session delete heimdallr-demo" Enter
-Wait
-
-# The recorder's desktop, back where it was. Reading `$ORIG` here is the whole reason it was
-# never sent to the pane.
-Type `reg.exe add "$KEY" /v AppsUseLightTheme /t REG_DWORD /d $((ORIG)) /f >/dev/null 2>&1` Enter
-Wait
-Type `kill %1 2>/dev/null; true` Enter
-Wait
-
-# Said out loud, so a restore that did not happen fails the recording rather than being
-# discovered on the desktop afterwards.
+# The second transition, which the screen could not distinguish. `vanadis current` prints the
+# theme it applied last, so this is the check that the flip back fired rather than that the
+# words were already there.
 #
-# `$?` and not the word itself: `Wait+Screen` matches the whole screen, and a command that
-# contains the string it is waiting for is matched by the typing rather than by the result.
-Type `reg.exe query "$KEY" /v AppsUseLightTheme | tr -d '\r' | grep -qw "$ORIG"; echo "restored=$?"` Enter
-Wait+Screen@15s /restored=0/
+# `$?` and not the word itself, in every one of these: `Wait+Screen` matches the whole
+# screen, and a command containing the string it waits for is matched by the typing rather
+# than by the result.
+Type `[ "$(vanadis current)" = "papercolor-dark" ]; echo back=$?` Enter
+Wait+Screen@15s /back=0/
+
+# The recorder's desktop, back where it was, and before anything is torn down: the shell is
+# known good here, and this is the one step that has to happen. Killing the watcher first
+# cost two recordings — the restore and its check ended up typed into a shell that had
+# stopped reading, and the tape aborted on the check rather than on the thing that broke.
+#
+# `add` reporting 0 is the evidence. An earlier version read the value back with a second
+# `reg.exe query`, and that query intermittently never returned: `restore=0` printed and then
+# nothing, in two recordings out of three, with `grep -q` and with an `awk` that reads its
+# input to the end alike. `add` has returned every time. The mechanism was not established,
+# so the tape does not run the call that hangs and demo/README.md says to check the value
+# afterwards.
+Type `reg.exe add "$KEY" /v AppsUseLightTheme /t REG_DWORD /d $((ORIG)) /f >/dev/null 2>&1; echo restore=$?` Enter
+Wait+Screen@15s /restore=0/
+
+# And that is the whole teardown. Nothing is killed here.
+#
+# `kill %1` on the watcher was the last thing to wedge this tape: it signals the job's whole
+# process group, and that group holds whatever `reg.exe` heimdallr had running at the time,
+# so the shell stopped answering and `echo watcher=$?` never printed. Both background jobs
+# get SIGHUP when vhs takes the shell away, and neither was left behind by the recording
+# this GIF came from — checked with `pgrep -af "follow-terminal-bg|heimdallr watch"`
+# afterwards, which is also how the disowned version was caught leaking.
