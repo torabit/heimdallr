@@ -1,5 +1,9 @@
 # tests/fixtures/palette.json rewritten in the format decided in docs/theme-format.md.
 # Derived from PaperColor by Nikyle Nguyen (https://github.com/NLKNguyen/papercolor-theme).
+#
+# Trimmed the same way as papercolor-dark.toml beside it: the `[diff]` and `[text]` tables
+# and the two primitives nothing references. See that file for why `[ansi]` and `[role]` stay
+# whole.
 
 [meta]
 format = 1
@@ -21,11 +25,9 @@ blue = "#005faf"
 gray = "#878787"
 silver = "#bcbcbc"
 ash = "#b2b2b2"
-slate = "#767676"
 pink = "#d70087"
 purple = "#8700af"
 orange = "#d75f00"
-brown = "#af5f00"
 sand = "#d7d7af"
 mist = "#e4e4e4"
 
@@ -69,20 +71,3 @@ inactive = "{{colors.gray}}"
 border = "{{colors.silver}}"
 selection-bg = "{{colors.sand}}"
 hover-bg = "{{colors.mist}}"
-
-# A second semantic namespace. These four are the only tints in the palette
-# that no primitive carries, so they are written as literals.
-[diff]
-added-bg = "#d7ffd7"
-added-emph = "#afffaf"
-removed-bg = "#ffd7d7"
-removed-emph = "#ffafaf"
-
-# Strings that are not colours. Read by templates that need a target's own
-# theme name rather than a colour.
-[text]
-delta-syntax-theme = "gruvbox-light"
-hunk-base = "github-light-default"
-# The built-in herdr theme anything [theme.custom] does not name falls back to. A dark base
-# under a light palette leaves a dark line wherever a token was missed.
-herdr-base = "catppuccin-latte"

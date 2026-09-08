@@ -116,7 +116,17 @@ demo/
 ```
 
 Copied from [vanadis](https://github.com/torabit/vanadis)'s own `demo/` and cut to what one
-terminal can show.
+terminal can show. The themes were cut too, and not to the nine tokens this demo reads:
+
+```sh
+vanadis check   # must say `checked 1 target` and name no undefined core tokens
+```
+
+`check` calls 33 tokens core — all 17 of `[role]` and all 16 of `[ansi]` — and reports a
+theme that leaves any of them out against every target it renders. Trimming to what is read
+made it report 24. What went instead is what is dead and not core: the `[diff]` table, which
+existed for a diff pager, the `[text]` table, whose values are other tools' own theme names,
+and the primitives that only the nvim and herdr templates referenced by appearance.
 
 heimdallr is not what changes the colours. `vanadis apply --variant "$1"` is, and `[auto]` in
 `demo/vanadis/config.toml` is what turns heimdallr's `dark` or `light` into a theme name, so
@@ -236,6 +246,6 @@ ffprobe -v error -f lavfi -i "movie=media/demo.gif,signalstats" \
       printf "transition at %.2fs: %.0f -> %.0f\n", (n-1)/24.0, prev, $1; prev=$1}'
 ```
 
-The recording committed here answers two transitions, at 11.54s and 17.83s, which is dark to
+The recording committed here answers two transitions, at 11.54s and 17.88s, which is dark to
 light and back. A recording where the watcher was stopped answers none, and looks fine until
 you ask.
